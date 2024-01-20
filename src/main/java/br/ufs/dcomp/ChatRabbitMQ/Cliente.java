@@ -1,3 +1,11 @@
+package br.ufs.dcomp.ChatRabbitMQ;
+
+import com.rabbitmq.client.*;
+
+import java.io.IOException;
+
+import java.util.Scanner; 
+
 public class Cliente {
     
     private Connection connection;
@@ -11,23 +19,27 @@ public class Cliente {
     
     public Cliente(String host, String username) {
         username = this.username;
-        init_comunicacao(host);
+        try {
+            init_comunicacao(host);
+        } catch(Exception e) {
+        }
     }
     
-    private void init_comunicacao(String host){
+    private void init_comunicacao(String host) throws Exception{
         ConnectionFactory factory = new ConnectionFactory();
         factory.setHost(host); // Alterar
         factory.setUsername("admin"); // Alterar
         factory.setPassword("password"); // Alterar
         factory.setVirtualHost("/");
+
         connection = factory.newConnection();
         channel = connection.createChannel();
         QUEUE_NAME = "fila" + username;
-                      //(queue-name, durable, exclusive, auto-delete, params); 
+        //(queue-name, durable, exclusive, auto-delete, params); 
         channel.queueDeclare(QUEUE_NAME, false,   false,     false,       null);
     }
     
-    public void init_consumer() {
+    public void init_consumer() throws Exception{
         consumer = new DefaultConsumer(channel) {
         public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body)  throws IOException {
 
@@ -41,6 +53,10 @@ public class Cliente {
     
     public void setReceptor(String receptor) {
         receptorAtual = receptor;
+    }
+    
+    public String getReceptor() {
+        return receptorAtual;
     }
     
 }
