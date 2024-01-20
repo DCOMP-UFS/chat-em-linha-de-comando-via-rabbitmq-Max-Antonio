@@ -50,6 +50,7 @@ public class Cliente {
 
         String message = new String(body, "UTF-8");
         System.out.println(message);
+        System.out.print(receptorAtual + ">> ");
 
         }
         };
@@ -79,7 +80,7 @@ public class Cliente {
         SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm");
         String dataFormatada = dateFormat.format(dataAtual);
         String tempoFormatado = timeFormat.format(dataAtual);
-        String mensagemFormatada = "(" + dataFormatada + " às " + tempoFormatado + ") " + username + " diz: " + mensagem;
+        String mensagemFormatada = "\n(" + dataFormatada + " às " + tempoFormatado + ") " + username + " diz: " + mensagem;
         
         channel.basicPublish("",       "fila" + receptorAtual, null,  mensagemFormatada.getBytes("UTF-8"));
     }
