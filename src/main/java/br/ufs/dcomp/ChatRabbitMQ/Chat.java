@@ -4,6 +4,8 @@ import com.rabbitmq.client.*;
 
 import java.io.IOException;
 
+import java.util.Scanner; 
+
 public class Chat {
 
   public static void main(String[] argv) throws Exception {
@@ -19,12 +21,12 @@ public class Chat {
 
      System.out.print(">> ");
      String novoReceptor = sc.nextLine();
-     cliente.setReceptor(novoReceptor.trim())
+     cliente.setReceptor(novoReceptor.trim());
       while (true) {
-          System.out.print(receptorAtual + ">> ");
+          System.out.print(cliente.getReceptor() + ">> ");
           String novaLinha = sc.nextLine();
           if (novaLinha.trim().charAt(0) == '@') {
-                receptorAtual = novaLinha.trim()
+                cliente.setReceptor(novaLinha.trim());
           }
           else {
                 //enviar mensagem
