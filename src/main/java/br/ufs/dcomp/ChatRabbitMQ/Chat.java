@@ -16,18 +16,9 @@ public class Chat {
     System.out.print("User: ");
     username = sc.nextLine();
     
-    Cliente cliente = new Cliente("ec2-34-201-149-80.compute-1.amazonaws.com", username);
-    
-    
-    Consumer consumer = new DefaultConsumer(cliente.getChannel()) {
-        public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body)  throws IOException {
-            String message = new String(body, "UTF-8");
-            System.out.println(message);
-        }
-    };
-    
-    cliente.getChannel().basicConsume(cliente.getQUEUE_NAME(), true,    consumer);
-        
+    Cliente cliente = new Cliente("ec2-54-167-43-53.compute-1.amazonaws.com", username);
+    cliente.init_consumer();    
+
     System.out.print(">> ");
     String novoReceptor = sc.nextLine();
     cliente.setReceptor(novoReceptor.trim());
