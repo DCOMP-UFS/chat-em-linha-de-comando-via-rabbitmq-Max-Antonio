@@ -39,6 +39,7 @@ public class Cliente {
         channel.queueDeclare(QUEUE_NAME, false,   false,     false,       null);
     }
     
+    /*
     public void init_consumer() throws Exception{
         consumer = new DefaultConsumer(channel) {
         public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body)  throws IOException {
@@ -50,6 +51,7 @@ public class Cliente {
         };
         channel.basicConsume(QUEUE_NAME, true,    consumer);
     }
+    */
     
     public void setReceptor(String receptor) {
         receptorAtual = receptor;
@@ -59,4 +61,15 @@ public class Cliente {
         return receptorAtual;
     }
     
+    public Channel getChannel() {
+        return channel;
+    }
+    
+    public String getQUEUE_NAME() {
+        return QUEUE_NAME;
+    }
+    
+    public void enviarMensagem(String mensagem) throws Exception{
+        channel.basicPublish("",       "fila" + receptorAtual, null,  mensagem.getBytes("UTF-8"));
+    }
 }
