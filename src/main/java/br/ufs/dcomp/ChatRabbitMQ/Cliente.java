@@ -6,6 +6,10 @@ import java.io.IOException;
 
 import java.util.Scanner; 
 
+import java.text.SimpleDateFormat;
+
+import java.util.Date;
+
 public class Cliente {
     
     private Connection connection;
@@ -18,7 +22,7 @@ public class Cliente {
     private Scanner sc;
     
     public Cliente(String host, String username) {
-        username = this.username;
+        this.username = username;
         try {
             init_comunicacao(host);
         } catch(Exception e) {
@@ -34,12 +38,12 @@ public class Cliente {
 
         connection = factory.newConnection();
         channel = connection.createChannel();
-        QUEUE_NAME = "fila" + username;
+        QUEUE_NAME = "fila@" + username;
         //(queue-name, durable, exclusive, auto-delete, params); 
         channel.queueDeclare(QUEUE_NAME, false,   false,     false,       null);
     }
     
-    /*
+
     public void init_consumer() throws Exception{
         consumer = new DefaultConsumer(channel) {
         public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body)  throws IOException {
@@ -51,7 +55,7 @@ public class Cliente {
         };
         channel.basicConsume(QUEUE_NAME, true,    consumer);
     }
-    */
+
     
     public void setReceptor(String receptor) {
         receptorAtual = receptor;
@@ -70,6 +74,13 @@ public class Cliente {
     }
     
     public void enviarMensagem(String mensagem) throws Exception{
-        channel.basicPublish("",       "fila" + receptorAtual, null,  mensagem.getBytes("UTF-8"));
+        Date dataAtual = new Date();
+        SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yy");
+        SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm");
+        String dataFormatada = dateFormat.format(dataAtual);
+        String tempoFormatado = timeFormat.format(dataAtual);
+        String mensagemFormatada = "(" + dataFormatada + " às " + tempoFormatado + ") " + username + " diz: " + mensagem;
+        
+        channel.basicPublish("",       "fila" + receptorAtual, null,  mensagemFormatada.getBytes("UTF-8"));
     }
 }
