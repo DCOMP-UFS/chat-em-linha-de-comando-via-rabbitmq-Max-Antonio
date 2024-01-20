@@ -7,28 +7,28 @@ import java.io.IOException;
 public class Chat {
 
   public static void main(String[] argv) throws Exception {
-    ConnectionFactory factory = new ConnectionFactory();
-    factory.setHost("ip-da-instancia-da-aws"); // Alterar
-    factory.setUsername("usuário-do-rabbitmq-server"); // Alterar
-    factory.setPassword("senha-do-rabbitmq-server"); // Alterar
-    factory.setVirtualHost("/");
-    Connection connection = factory.newConnection();
-    Channel channel = connection.createChannel();
-    
-    String QUEUE_NAME = "minha-fila";
-                      //(queue-name, durable, exclusive, auto-delete, params); 
-    channel.queueDeclare(QUEUE_NAME, false,   false,     false,       null);
-    
-    Consumer consumer = new DefaultConsumer(channel) {
-      public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body)           throws IOException {
 
-        String message = new String(body, "UTF-8");
-        System.out.println(message);
-
-      }
-    };
-                      //(queue-name, autoAck, consumer);    
-    channel.basicConsume(QUEUE_NAME, true,    consumer);
+    Scanner sc = new Scanner(System.in);
+    String username;
     
+    System.out.print("User: ");
+    username = sc.nextLine();
+    
+    Cliente cliente = new Cliente("ec2-34-201-149-80.compute-1.amazonaws.com", username);
+    cliente.init_consumer();
+
+     System.out.print(">> ");
+     String novoReceptor = sc.nextLine();
+     cliente.setReceptor(novoReceptor.trim())
+      while (true) {
+          System.out.print(receptorAtual + ">> ");
+          String novaLinha = sc.nextLine();
+          if (novaLinha.trim().charAt(0) == '@') {
+                receptorAtual = novaLinha.trim()
+          }
+          else {
+                //enviar mensagem
+          }
+        }
   }
 }
