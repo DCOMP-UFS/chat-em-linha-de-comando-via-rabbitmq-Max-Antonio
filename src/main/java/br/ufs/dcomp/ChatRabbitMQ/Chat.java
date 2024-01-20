@@ -17,20 +17,29 @@ public class Chat {
     username = sc.nextLine();
     
     Cliente cliente = new Cliente("ec2-34-201-149-80.compute-1.amazonaws.com", username);
-    cliente.init_consumer();
-
-     System.out.print(">> ");
-     String novoReceptor = sc.nextLine();
-     cliente.setReceptor(novoReceptor.trim());
-      while (true) {
-          System.out.print(cliente.getReceptor() + ">> ");
-          String novaLinha = sc.nextLine();
-          if (novaLinha.trim().charAt(0) == '@') {
-                cliente.setReceptor(novaLinha.trim());
-          }
-          else {
-                //enviar mensagem
-          }
+    
+    
+    Consumer consumer = new DefaultConsumer(cliente.getChannel()) {
+        public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body)  throws IOException {
+            String message = new String(body, "UTF-8");
+            System.out.println(message);
         }
+    };
+    
+    cliente.getChannel().basicConsume(cliente.getQUEUE_NAME(), true,    consumer);
+        
+    System.out.print(">> ");
+    String novoReceptor = sc.nextLine();
+    cliente.setReceptor(novoReceptor.trim());
+     while (true) {
+        System.out.print(cliente.getReceptor() + ">> ");
+        String novaLinha = sc.nextLine();
+        if (novaLinha.trim().charAt(0) == '@') {
+            cliente.setReceptor(novaLinha.trim());
+        }
+        else {
+            cliente.enviarMensagem(novaLinha);
+        }
+    }
   }
 }
