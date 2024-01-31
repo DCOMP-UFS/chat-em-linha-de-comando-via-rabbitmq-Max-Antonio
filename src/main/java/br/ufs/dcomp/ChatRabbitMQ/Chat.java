@@ -16,10 +16,11 @@ public class Chat {
     System.out.print("User: ");
     username = sc.nextLine();
     
-    Cliente cliente = new Cliente("ec2-54-87-57-12.compute-1.amazonaws.com", username);
+    Cliente cliente = new Cliente("ec2-52-201-240-99.compute-1.amazonaws.com", username);
     cliente.init_consumer();    
     
     char estadoAtual = 'i';
+    char tipoComando;
     
     while (true) {
         if (estadoAtual == 'i') { //inicial
@@ -32,7 +33,13 @@ public class Chat {
             System.out.print("#" + cliente.getGrupoAtual() + ">> ");
         }
         String novaLinha = sc.nextLine();
-        char tipoComando = novaLinha.trim().charAt(0);
+        
+        if (novaLinha.length() > 0) {
+            tipoComando = novaLinha.trim().charAt(0);
+        }
+        else {
+            tipoComando = 'n';
+        }
         
         switch(tipoComando) {
             case '@':
@@ -41,16 +48,18 @@ public class Chat {
                 break;
             case '!':
                 String[] palavras = novaLinha.trim().split("\\s+");
-                if (palavras[0] == "!addGroup") {
+                if ("!addGroup".equals(palavras[0])) {
                     cliente.criaGrupo(palavras[1]);
                 }
-                else if(palavras[0] == "!addUser") {
+                else if("!addUser".equals(palavras[0])) {
                     cliente.addUser(palavras[1], palavras[2]);
                 }
                 break;
             case '#':
                 cliente.setGrupoAtual(novaLinha.trim().substring(1));
                 estadoAtual = '#';
+                break;
+            case 'n': //não faz nada
                 break;
             default:
                 if (estadoAtual == '@') {
