@@ -16,7 +16,7 @@ public class Chat {
     System.out.print("User: ");
     username = sc.nextLine();
     
-    Cliente cliente = new Cliente("ec2-52-201-240-99.compute-1.amazonaws.com", username);
+    Cliente cliente = new Cliente("ec2-34-229-10-245.compute-1.amazonaws.com", username);
     cliente.init_consumer();    
     
     char estadoAtual = 'i';
@@ -63,10 +63,10 @@ public class Chat {
                 break;
             default:
                 if (estadoAtual == '@') {
-                    cliente.enviarMensagem(novaLinha);
+                    cliente.enviarMensagem(novaLinha, 0);
                 }
                 else if (estadoAtual == '#') {
-                    cliente.enviarMensagemGrupo(novaLinha);
+                    cliente.enviarMensagem(novaLinha, 1);
                 }
         }
     }
