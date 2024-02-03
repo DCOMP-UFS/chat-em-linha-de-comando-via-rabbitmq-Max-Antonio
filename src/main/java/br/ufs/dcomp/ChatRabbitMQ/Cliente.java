@@ -2,13 +2,17 @@ package br.ufs.dcomp.ChatRabbitMQ;
 
 import com.rabbitmq.client.*;
 
-import java.util.Scanner; 
-
 import java.text.SimpleDateFormat;
 
 import java.util.Date;
 
 import java.io.*;
+
+import java.util.*;
+
+import com.google.protobuf.util.JsonFormat;
+
+import com.google.protobuf.ByteString;
 
 public class Cliente {
     
@@ -19,7 +23,6 @@ public class Cliente {
     private String grupoAtual;
     private String QUEUE_NAME;
     private Consumer consumer;
-    private static final String EXCHANGE_NAME = "logs";
     private Scanner sc;
     
     public Cliente(String host, String username) {
@@ -50,9 +53,29 @@ public class Cliente {
         consumer = new DefaultConsumer(channel) {
         public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body)  throws IOException {
 
-        String message = new String(body, "UTF-8");
-        System.out.println(message);
-        System.out.print(receptorAtual + ">> ");
+        MensagemProto.Mensagem mensagem = MensagemProto.Mensagem.parseFrom(body);
+        String emissor = mensagem.getEmissor();
+        String data = mensagem.getData();
+        String hora = mensagem.getHora();
+        String grupo = mensagem.getGrupo();
+        
+        MensagemProto.Conteudo conteudo = mensagem.getConteudo();
+        String tipo = conteudo.getTipo();
+        String corpo = conteudo.getCorpo().toStringUtf8();
+        String nome = conteudo.getNome();
+        
+        String mensagemFormatada;
+        if (grupo.equals("")) {
+            mensagemFormatada = "(" + data + " as " + hora + ") " + emissor + " diz: " + corpo;
+        }
+        else {
+            mensagemFormatada = "(" + data + " as " + hora + ") " + emissor + "#" + grupo + " diz: " + corpo;
+        }
+        
+        if (emissor.equals(username)) { //para o emissor não receber a própria mensagem
+            System.out.println(mensagemFormatada);
+            System.out.print(receptorAtual + ">> ");
+        }
 
         }
         };
@@ -84,44 +107,45 @@ public class Cliente {
         return grupoAtual;
     }
     
-    public void enviarMensagem(String mensagem) throws Exception{ //montar json na origem
+    public void enviarMensagem(String mensagemCorpo, int paraGrupo) throws Exception{ //montar json na origem
         Date dataAtual = new Date();
         SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yy");
         SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm");
         String dataFormatada = dateFormat.format(dataAtual);
         String horaFormatada = timeFormat.format(dataAtual);
         
-        /*
+        
         
         MensagemProto.Conteudo.Builder builderConteudo = MensagemProto.Conteudo.newBuilder();
-        builderConteudo.setTipo(    );
-        builderConteudo.setCorpo(mensagemCorpo);
-        builderConteudo.setNome(    );
+        builderConteudo.setTipo("text/plain");
+        builderConteudo.setCorpo(ByteString.copyFrom(mensagemCorpo.getBytes("UTF-8")));
+        builderConteudo.setNome("");
         
         MensagemProto.Mensagem.Builder builderMensagem = MensagemProto.Mensagem.newBuilder();
         builderMensagem.setEmissor(username);
         builderMensagem.setData(dataFormatada);
         builderMensagem.setHora(horaFormatada);
-        builderMensagem.setGrupo(             );
+        if (paraGrupo == 1) {
+            builderMensagem.setGrupo(grupoAtual);
+        }
+        else {
+            builderMensagem.setGrupo("");
+        }
         builderMensagem.setConteudo(builderConteudo);
         
-        */
+        MensagemProto.Mensagem mensagem = builderMensagem.build();
         
-        String mensagemFormatada = "\n(" + dataFormatada + " às " + horaFormatada + ") " + username + " diz: " + mensagem;
+        byte[] buffer = mensagem.toByteArray();
+         
+        if (paraGrupo == 1) {
+            channel.basicPublish(grupoAtual, "", null, buffer);
+        }
+        else {
+            channel.basicPublish("", "fila" + receptorAtual, null,  buffer);
+        }
         
-        channel.basicPublish("", "fila" + receptorAtual, null,  mensagemFormatada.getBytes("UTF-8"));
     }
     
-    public void enviarMensagemGrupo(String mensagem) throws Exception{
-        Date dataAtual = new Date();
-        SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yy");
-        SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm");
-        String dataFormatada = dateFormat.format(dataAtual);
-        String horaFormatada = timeFormat.format(dataAtual);
-        String mensagemFormatada = "\n(" + dataFormatada + " às " + horaFormatada + ") " + username + "#" + grupoAtual + " diz: " + mensagem;
-        
-        channel.basicPublish(grupoAtual, "", null, mensagemFormatada.getBytes("UTF-8"));
-    }
     
     public void addUser(String nomeUser, String nomeGrupo)  throws Exception{
         channel.queueBind("fila@" + nomeUser, nomeGrupo, "");
