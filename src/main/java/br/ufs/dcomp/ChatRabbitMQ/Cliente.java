@@ -47,7 +47,6 @@ public class Cliente {
         //(queue-name, durable, exclusive, auto-delete, params); 
         channel.queueDeclare(QUEUE_NAME, false,   false,     false,       null);
     }
-    
 
     public void init_consumer() throws Exception{
         consumer = new DefaultConsumer(channel) {
@@ -72,7 +71,7 @@ public class Cliente {
             mensagemFormatada = "(" + data + " as " + hora + ") " + emissor + "#" + grupo + " diz: " + corpo;
         }
         
-        if (emissor.equals(username)) { //para o emissor não receber a própria mensagem
+        if (emissor.equals(username) == false) { //para o emissor não receber a própria mensagem
             System.out.println(mensagemFormatada);
             System.out.print(receptorAtual + ">> ");
         }
@@ -81,7 +80,6 @@ public class Cliente {
         };
         channel.basicConsume(QUEUE_NAME, true,    consumer);
     }
-
     
     public void setReceptor(String receptor) {
         receptorAtual = receptor;
@@ -93,14 +91,6 @@ public class Cliente {
     
     public String getReceptor() {
         return receptorAtual;
-    }
-    
-    public Channel getChannel() {
-        return channel;
-    }
-    
-    public String getQUEUE_NAME() {
-        return QUEUE_NAME;
     }
     
     public String getGrupoAtual() {
@@ -146,13 +136,20 @@ public class Cliente {
         
     }
     
-    
     public void addUser(String nomeUser, String nomeGrupo)  throws Exception{
         channel.queueBind("fila@" + nomeUser, nomeGrupo, "");
     }
     
-    public void criaGrupo(String nomeGrupo)  throws Exception{
+    public void addGroup(String nomeGrupo)  throws Exception{
         channel.exchangeDeclare(nomeGrupo, "fanout");
         addUser(username, nomeGrupo); //o criador do grupo é adicionado
+    }
+    
+    public void delFromGroup(String nomeUser, String nomeGrupo) throws Exception{
+        channel.queueUnbind("fila@" + nomeUser, nomeGrupo, "");
+    }
+    
+    public void removeGroup(String nomeGrupo) throws Exception{
+        channel.exchangeDelete(nomeGrupo);
     }
 }
