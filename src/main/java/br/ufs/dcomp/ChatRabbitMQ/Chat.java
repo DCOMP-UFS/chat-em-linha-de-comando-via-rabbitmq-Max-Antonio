@@ -16,7 +16,7 @@ public class Chat {
     System.out.print("User: ");
     username = sc.nextLine();
     
-    Cliente cliente = new Cliente("ec2-34-229-10-245.compute-1.amazonaws.com", username);
+    Cliente cliente = new Cliente("ec2-54-173-57-112.compute-1.amazonaws.com", username);
     cliente.init_consumer();    
     
     char estadoAtual = 'i';
@@ -49,10 +49,16 @@ public class Chat {
             case '!':
                 String[] palavras = novaLinha.trim().split("\\s+");
                 if ("!addGroup".equals(palavras[0])) {
-                    cliente.criaGrupo(palavras[1]);
+                    cliente.addGroup(palavras[1]);
                 }
                 else if("!addUser".equals(palavras[0])) {
                     cliente.addUser(palavras[1], palavras[2]);
+                }
+                else if ("!delFromGroup".equals(palavras[0])) {
+                    cliente.delFromGroup(palavras[1], palavras[2]);
+                }
+                else if ("!removeGroup".equals(palavras[0])) {
+                    cliente.removeGroup(palavras[1]);
                 }
                 break;
             case '#':
