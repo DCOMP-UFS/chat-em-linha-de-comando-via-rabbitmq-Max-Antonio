@@ -16,8 +16,7 @@ public class Chat {
     System.out.print("User: ");
     username = sc.nextLine();
     
-    Cliente cliente = new Cliente("ec2-54-173-57-112.compute-1.amazonaws.com", username);
-    cliente.init_consumer();    
+    Cliente cliente = new Cliente("ec2-18-212-92-236.compute-1.amazonaws.com", username);
     
     char estadoAtual = 'i';
     char tipoComando;
@@ -60,6 +59,14 @@ public class Chat {
                 else if ("!removeGroup".equals(palavras[0])) {
                     cliente.removeGroup(palavras[1]);
                 }
+                else if ("!upload".equals(palavras[0])) {
+                    if (estadoAtual == '#') {
+                        cliente.uploadFile(palavras[1], 1);
+                    }
+                    else if (estadoAtual == '@') {
+                        cliente.uploadFile(palavras[1], 0);
+                    }
+                }
                 break;
             case '#':
                 cliente.setGrupoAtual(novaLinha.trim().substring(1));
@@ -68,11 +75,12 @@ public class Chat {
             case 'n': //não faz nada
                 break;
             default:
+                byte[] mensagemCorpo = novaLinha.getBytes("UTF-8");
                 if (estadoAtual == '@') {
-                    cliente.enviarMensagem(novaLinha, 0);
+                    cliente.enviarMensagem(mensagemCorpo, 0);
                 }
                 else if (estadoAtual == '#') {
-                    cliente.enviarMensagem(novaLinha, 1);
+                    cliente.enviarMensagem(mensagemCorpo, 1);
                 }
         }
     }
