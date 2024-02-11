@@ -25,12 +25,18 @@ public class Cliente {
     private String grupoAtual;
     private String QUEUE_NAME; //fila de mensagens usuário
     private String FILE_QUEUE_NAME; //fila de arquivos do usuário
+    private String ROUTING_KEY_TEXT;
+    private String ROUTING_KEY_FILE;
     private Consumer consumer;
     private Scanner sc;
+    private int existeDownloads; //booleano para identificar se o diretório de download foi criado
     
     public Cliente(String host, String username) {
         this.username = username;
         receptorAtual = "";
+        existeDownloads = 0;
+        ROUTING_KEY_TEXT = "text";
+        ROUTING_KEY_FILE = "file";
         try {
             init_comunicacao(host);
             init_consumer();
@@ -54,50 +60,79 @@ public class Cliente {
         channel.queueDeclare(FILE_QUEUE_NAME, false,   false,     false,       null);
     }
 
+
+    private void criaDiretorioDownloads() {
+        if (existeDownloads == 0) {
+            new File("/home/ubuntu/environment/downloads").mkdirs();
+            existeDownloads = 1;
+        }
+    }
+
     public void init_consumer() throws Exception{
-        consumer = new DefaultConsumer(channel) {
-        public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body)  throws IOException {
 
-        MensagemProto.Mensagem mensagem = MensagemProto.Mensagem.parseFrom(body);
-        String emissor = mensagem.getEmissor();
-        String data = mensagem.getData();
-        String hora = mensagem.getHora();
-        String grupo = mensagem.getGrupo();
         
-        MensagemProto.Conteudo conteudo = mensagem.getConteudo();
-        String tipo = conteudo.getTipo();
-        String nome = conteudo.getNome();
         
-        String mensagemFormatada = "";
-        
-        if (tipo.equals("text/plain")) {
-            String corpo = conteudo.getCorpo().toStringUtf8();
-            if (grupo.equals("")) {
-                mensagemFormatada = "(" + data + " as " + hora + ") " + emissor + " diz: " + corpo;
+        channel.basicConsume(QUEUE_NAME, true,  new DefaultConsumer(channel) {
+            @Override
+            public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
+                MensagemProto.Mensagem mensagem = MensagemProto.Mensagem.parseFrom(body);
+                String emissor = mensagem.getEmissor();
+                String data = mensagem.getData();
+                String hora = mensagem.getHora();
+                String grupo = mensagem.getGrupo();
+                MensagemProto.Conteudo conteudo = mensagem.getConteudo();
+                String corpo = conteudo.getCorpo().toStringUtf8();
+                String mensagemFormatada = "";
+                
+                if (emissor.equals(username) == false) { //para o emissor não receber a própria mensagem
+                    if (grupo.equals("")) {
+                        mensagemFormatada = "(" + data + " as " + hora + ") " + emissor + " diz: " + corpo;
+                        System.out.println(mensagemFormatada);
+                        System.out.print(receptorAtual + ">> ");
+                    }
+                    else {
+                        mensagemFormatada = "(" + data + " as " + hora + ") " + emissor + "#" + grupo + " diz: " + corpo;
+                        System.out.println(mensagemFormatada);
+                        System.out.print("#" + grupoAtual + ">> ");
+                    }
+                }
             }
-            else {
-                mensagemFormatada = "(" + data + " as " + hora + ") " + emissor + "#" + grupo + " diz: " + corpo;
-            }
-        }
-        else {
-            byte[] corpo = conteudo.getCorpo().toByteArray();
-            try (FileOutputStream fos = new FileOutputStream("/home/Ambiente/ChatRabbitMQ/image.png")) {
-                fos.write(corpo);
-            }
-        }
+        });
         
-        
-        
-        
-        
-        if (emissor.equals(username) == false) { //para o emissor não receber a própria mensagem
-            System.out.println(mensagemFormatada);
-            System.out.print(receptorAtual + ">> ");
-        }
+        channel.basicConsume(FILE_QUEUE_NAME, true,  new DefaultConsumer(channel) {
+            @Override
+            public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
+                MensagemProto.Mensagem mensagem = MensagemProto.Mensagem.parseFrom(body);
+                String emissor = mensagem.getEmissor();
+                String data = mensagem.getData();
+                String hora = mensagem.getHora();
+                String grupo = mensagem.getGrupo();
+                MensagemProto.Conteudo conteudo = mensagem.getConteudo();
+                String tipo = conteudo.getTipo();
+                String nome = conteudo.getNome();
+                String mensagemFormatada = "";
+                
+                if (emissor.equals(username) == false) { //para o emissor não receber o próprio arquivo
+                    criaDiretorioDownloads();
+                    byte[] corpo = conteudo.getCorpo().toByteArray();
+                    try (FileOutputStream fos = new FileOutputStream("/home/ubuntu/environment/downloads/" + nome)) {
+                        fos.write(corpo);
+                    }
+                    if (grupo.equals("")) {
+                        mensagemFormatada = "\n(" + data + " as " + hora + ") " + "Arquivo " + nome + " recebido de " + emissor;
+                        System.out.println(mensagemFormatada);
+                        System.out.print(receptorAtual + ">> ");
+                    }
+                    else {
+                        mensagemFormatada = "\n(" + data + " as " + hora + ") " + "Arquivo " + nome + " recebido de " + emissor + "#" + grupo;
+                        System.out.println(mensagemFormatada);
+                        System.out.print("#" + grupoAtual + ">> ");
+                    }
+                }
+                
 
-        }
-        };
-        channel.basicConsume(QUEUE_NAME, true,    consumer);
+            }
+        });
     }
     
     public void setReceptor(String receptor) {
@@ -147,7 +182,7 @@ public class Cliente {
     public void enviarMensagem(byte[] mensagemCorpo, int paraGrupo) throws Exception{ //montar json na origem
         if (paraGrupo == 1) {
             byte[] buffer = criaBufferMensagem("text/plain", mensagemCorpo, "", username, grupoAtual);
-            channel.basicPublish(grupoAtual, "", null, buffer);
+            channel.basicPublish(grupoAtual, ROUTING_KEY_TEXT, null, buffer);
         }
         else {
             byte[] buffer = criaBufferMensagem("text/plain", mensagemCorpo, "", username, "");
@@ -158,12 +193,12 @@ public class Cliente {
     
     
     public void addUser(String nomeUser, String nomeGrupo)  throws Exception{
-        channel.queueBind("fila@" + nomeUser, nomeGrupo, "");
-        channel.queueBind("filaArquivo@" + nomeUser, nomeGrupo, "");
+        channel.queueBind("fila@" + nomeUser, nomeGrupo, ROUTING_KEY_TEXT);
+        channel.queueBind("filaArquivo@" + nomeUser, nomeGrupo, ROUTING_KEY_FILE);
     }
     
     public void addGroup(String nomeGrupo)  throws Exception{
-        channel.exchangeDeclare(nomeGrupo, "direct");
+        channel.exchangeDeclare(nomeGrupo, "direct", true);
         addUser(username, nomeGrupo); //o criador do grupo é adicionado
     }
     
@@ -183,12 +218,17 @@ public class Cliente {
         String tipoMime = Files.probeContentType(source);
         String nome = source.getFileName().toString();
         if (paraGrupo == 1) {
-            byte[] buffer = criaBufferMensagem(tipoMime, fileBytes, "", username, grupoAtual);
-            channel.basicPublish(grupoAtual, "", null, buffer);
+            System.out.println("Enviando " + path + " para " + grupoAtual);
+            byte[] buffer = criaBufferMensagem(tipoMime, fileBytes, nome, username, grupoAtual);
+            Uploader upGrupo = new Uploader(channel, buffer, "", grupoAtual, ROUTING_KEY_FILE, 1); 
+            upGrupo.start();
         }
         else {
-            byte[] buffer = criaBufferMensagem(tipoMime, fileBytes, "", username, "");
-            channel.basicPublish("", "fila" + receptorAtual, null,  buffer);
+            System.out.println("Enviando " + path + " para " + receptorAtual);
+            byte[] buffer = criaBufferMensagem(tipoMime, fileBytes, nome, username, "");
+            Uploader upReceptor = new Uploader(channel, buffer, receptorAtual, "", "", 0); 
+            upReceptor.start();
+            
         }
     } 
 }
