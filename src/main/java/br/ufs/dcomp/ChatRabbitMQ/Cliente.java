@@ -20,6 +20,7 @@ public class Cliente {
     
     private Connection connection;
     private Channel channel;
+    private Channel channelFile;
     private String username;
     private String receptorAtual; //usuario que o usuario atual está mandando mensagem
     private String grupoAtual;
@@ -53,11 +54,12 @@ public class Cliente {
 
         connection = factory.newConnection();
         channel = connection.createChannel(); //cria canal
+        channelFile = connection.createChannel(); 
         QUEUE_NAME = "fila@" + username;
         FILE_QUEUE_NAME = "filaArquivo@" + username;
         //(queue-name, durable, exclusive, auto-delete, params); 
         channel.queueDeclare(QUEUE_NAME, false,   false,     false,       null);
-        channel.queueDeclare(FILE_QUEUE_NAME, false,   false,     false,       null);
+        channelFile.queueDeclare(FILE_QUEUE_NAME, false,   false,     false,       null);
     }
 
 
@@ -194,21 +196,23 @@ public class Cliente {
     
     public void addUser(String nomeUser, String nomeGrupo)  throws Exception{
         channel.queueBind("fila@" + nomeUser, nomeGrupo, ROUTING_KEY_TEXT);
-        channel.queueBind("filaArquivo@" + nomeUser, nomeGrupo, ROUTING_KEY_FILE);
+        channelFile.queueBind("filaArquivo@" + nomeUser, nomeGrupo, ROUTING_KEY_FILE);
     }
     
     public void addGroup(String nomeGrupo)  throws Exception{
         channel.exchangeDeclare(nomeGrupo, "direct", true);
+        channelFile.exchangeDeclare(nomeGrupo, "direct", true);
         addUser(username, nomeGrupo); //o criador do grupo é adicionado
     }
     
     public void delFromGroup(String nomeUser, String nomeGrupo) throws Exception{
         channel.queueUnbind("fila@" + nomeUser, nomeGrupo, "");
-        channel.queueUnbind("filaArquivo@" + nomeUser, nomeGrupo, "");
+        channelFile.queueUnbind("filaArquivo@" + nomeUser, nomeGrupo, "");
     }
     
     public void removeGroup(String nomeGrupo) throws Exception{
         channel.exchangeDelete(nomeGrupo);
+        channelFile.exchangeDelete(nomeGrupo);
     }
     
     public void uploadFile(String path, int paraGrupo) throws Exception{
@@ -220,13 +224,13 @@ public class Cliente {
         if (paraGrupo == 1) {
             System.out.println("Enviando " + path + " para " + grupoAtual);
             byte[] buffer = criaBufferMensagem(tipoMime, fileBytes, nome, username, grupoAtual);
-            Uploader upGrupo = new Uploader(channel, buffer, "", grupoAtual, ROUTING_KEY_FILE, 1); 
+            Uploader upGrupo = new Uploader(channelFile, buffer, "", grupoAtual, ROUTING_KEY_FILE, 1); 
             upGrupo.start();
         }
         else {
             System.out.println("Enviando " + path + " para " + receptorAtual);
             byte[] buffer = criaBufferMensagem(tipoMime, fileBytes, nome, username, "");
-            Uploader upReceptor = new Uploader(channel, buffer, receptorAtual, "", "", 0); 
+            Uploader upReceptor = new Uploader(channelFile, buffer, receptorAtual, "", "", 0); 
             upReceptor.start();
             
         }

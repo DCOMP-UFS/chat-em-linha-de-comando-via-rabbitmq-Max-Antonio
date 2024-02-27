@@ -82,7 +82,7 @@ public class Chat {
     Scanner sc = new Scanner(System.in);
     System.out.print("User: ");
     username = sc.nextLine();
-    Cliente cliente = new Cliente("ec2-34-230-4-134.compute-1.amazonaws.com", username);
+    Cliente cliente = new Cliente("ec2-3-84-197-242.compute-1.amazonaws.com", username);
     user_input(cliente, sc);
   }
 }

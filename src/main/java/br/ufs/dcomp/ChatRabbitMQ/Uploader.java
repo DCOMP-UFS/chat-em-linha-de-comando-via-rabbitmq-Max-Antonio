@@ -3,15 +3,15 @@ import com.rabbitmq.client.*;
 
 public class Uploader extends Thread {
     
-    private Channel channel;
+    private Channel channelFile;
     private byte[] buffer;
     private String receptorAtual;
     private String grupoAtual;
     private String ROUTING_KEY_FILE;
     private int paraGrupo;
     
-    public Uploader(Channel channel, byte[] buffer, String receptorAtual, String grupoAtual, String ROUTING_KEY_FILE, int paraGrupo) {
-        this.channel = channel;
+    public Uploader(Channel channelFile, byte[] buffer, String receptorAtual, String grupoAtual, String ROUTING_KEY_FILE, int paraGrupo) {
+        this.channelFile = channelFile;
         this.buffer = buffer;
         this.receptorAtual = receptorAtual;
         this.grupoAtual = grupoAtual;
@@ -22,10 +22,10 @@ public class Uploader extends Thread {
     public void run() {
         try {
             if (paraGrupo == 1) {
-                channel.basicPublish(grupoAtual, ROUTING_KEY_FILE, null, buffer);
+                channelFile.basicPublish(grupoAtual, ROUTING_KEY_FILE, null, buffer);
             }
             else {
-                channel.basicPublish("", "filaArquivo" + receptorAtual, null,  buffer);
+                channelFile.basicPublish("", "filaArquivo" + receptorAtual, null,  buffer);
             }
         } catch (Exception e){
             
