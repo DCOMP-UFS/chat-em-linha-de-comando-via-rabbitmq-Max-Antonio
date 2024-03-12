@@ -1,20 +1,18 @@
 package br.ufs.dcomp.ChatRabbitMQ;
-
 import com.rabbitmq.client.*;
-
 import java.text.SimpleDateFormat;
-
 import java.util.Date;
-
 import java.io.*;
-
 import java.util.*;
-
 import com.google.protobuf.util.JsonFormat;
-
 import com.google.protobuf.ByteString;
-
 import java.nio.file.*;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
 
 public class Cliente {
     
@@ -28,13 +26,16 @@ public class Cliente {
     private String FILE_QUEUE_NAME; //fila de arquivos do usuário
     private String ROUTING_KEY_TEXT;
     private String ROUTING_KEY_FILE;
+    private String ipv4Publico;
     private Consumer consumer;
     private Scanner sc;
     private int existeDownloads; //booleano para identificar se o diretório de download foi criado
     
-    public Cliente(String host, String username) {
+    public Cliente(String host, String ipv4Publico, String username) {
+        this.ipv4Publico = ipv4Publico;
         this.username = username;
         receptorAtual = "";
+        grupoAtual = "";
         existeDownloads = 0;
         ROUTING_KEY_TEXT = "text";
         ROUTING_KEY_FILE = "file";
@@ -206,8 +207,8 @@ public class Cliente {
     }
     
     public void delFromGroup(String nomeUser, String nomeGrupo) throws Exception{
-        channel.queueUnbind("fila@" + nomeUser, nomeGrupo, "");
-        channelFile.queueUnbind("filaArquivo@" + nomeUser, nomeGrupo, "");
+        channel.queueUnbind("fila@" + nomeUser, nomeGrupo, ROUTING_KEY_TEXT);
+        channelFile.queueUnbind("filaArquivo@" + nomeUser, nomeGrupo, ROUTING_KEY_FILE);
     }
     
     public void removeGroup(String nomeGrupo) throws Exception{
@@ -235,4 +236,76 @@ public class Cliente {
             
         }
     } 
+    
+    public void listUsers(String nomeGrupo) throws Exception {
+        String username = "admin";
+        String password = "password";
+     
+        String usernameAndPassword = username + ":" + password;
+        String authorizationHeaderName = "Authorization";
+        String authorizationHeaderValue = "Basic " + java.util.Base64.getEncoder().encodeToString( usernameAndPassword.getBytes() );
+
+        String restResource = "http://" + ipv4Publico + ":15672";
+        Client client = ClientBuilder.newClient();
+        Response resposta = client.target( restResource )
+                .path("/api/exchanges/%2f/" + nomeGrupo + "/bindings/source")
+            	.request(MediaType.APPLICATION_JSON)
+                .header( authorizationHeaderName, authorizationHeaderValue ) // autenticação básica
+                .get();     // executa um post com os valores preenchidos
+        if (resposta.getStatus() == 200) {
+            String json = resposta.readEntity(String.class);
+            
+            //mapeia o string json para uma lista de objetos binding
+            ObjectMapper mapper = new ObjectMapper();
+            List<Binding> bindingList = mapper.readValue(json, new TypeReference<List<Binding>>(){});
+            
+            String usersGrupo = "";
+            for (Binding b : bindingList) {
+                if (b.getProperties_key().equals("text")) { //se o binding for fila de texto
+                    usersGrupo += b.getDestination().substring(5) + ", "; //adiciona usuario a string
+                }
+            }
+            
+            System.out.println(usersGrupo.substring(0, usersGrupo.length() - 2));
+            
+        } else {
+            System.out.println(resposta.getStatus());
+        }   
+    }
+    
+    public void listGroups() throws Exception  {
+        String username = "admin";
+        String password = "password";
+     
+        String usernameAndPassword = username + ":" + password;
+        String authorizationHeaderName = "Authorization";
+        String authorizationHeaderValue = "Basic " + java.util.Base64.getEncoder().encodeToString( usernameAndPassword.getBytes() );
+
+        String restResource = "http://" + ipv4Publico + ":15672";
+        Client client = ClientBuilder.newClient();
+        Response resposta = client.target( restResource )
+                .path("/api/queues/%2f/" + QUEUE_NAME + "/bindings")
+            	.request(MediaType.APPLICATION_JSON)
+                .header( authorizationHeaderName, authorizationHeaderValue ) // autenticação básica
+                .get();     // executa um post com os valores preenchidos
+        if (resposta.getStatus() == 200) {
+            String json = resposta.readEntity(String.class);
+            
+            //mapeia o string json para uma lista de objetos binding
+            ObjectMapper mapper = new ObjectMapper();
+            List<Binding> bindingList = mapper.readValue(json, new TypeReference<List<Binding>>(){});
+            
+            String grupos = "";
+            for (Binding b : bindingList) {
+                if (!b.getSource().equals("")) { //se o binding for fila de texto
+                    grupos += b.getSource() + ", "; //adiciona usuario a string
+                }
+            }
+            
+            System.out.println(grupos.substring(0, grupos.length() - 2));
+            
+        } else {
+            System.out.println(resposta.getStatus());
+        }   
+    }
 }

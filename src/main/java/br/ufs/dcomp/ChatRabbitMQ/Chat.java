@@ -58,6 +58,12 @@ public class Chat {
                             cliente.uploadFile(palavras[1], 0);
                         }
                     }
+                    else if ("!listUsers".equals(palavras[0])){
+                        cliente.listUsers(palavras[1]);
+                    }
+                    else if ("!listGroups".equals(palavras[0])){
+                        cliente.listGroups();
+                    }
                     break;
                 case '#':
                     cliente.setGrupoAtual(novaLinha.trim().substring(1));
@@ -82,7 +88,7 @@ public class Chat {
     Scanner sc = new Scanner(System.in);
     System.out.print("User: ");
     username = sc.nextLine();
-    Cliente cliente = new Cliente("ec2-3-84-197-242.compute-1.amazonaws.com", username);
+    Cliente cliente = new Cliente("ec2-18-234-60-237.compute-1.amazonaws.com", "18.234.60.237", username); //DNS público, ipv4 público, username
     user_input(cliente, sc);
   }
 }
